@@ -6,6 +6,8 @@ const path = require('path');
 require('dotenv').config();
 const mongoose = require('mongoose');
 
+const Student = require('./models/Student');
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -42,8 +44,7 @@ app.post('/find-student', async (req, res) => {
             return res.status(400).send({ error: 'Student name is required' });
         }
 
-        const students = await loadStudents();
-        const student = students.find((item) => item.name === name);
+        const student = await Student.findOne({ name });
         if (!student) {
             return res.status(404).send({ error: 'Student not found' });
         }
@@ -63,10 +64,13 @@ app.post('/add-student', async (req, res) => {
             return res.status(400).send({ error: 'All fields (name, id, phone, zip) are required' });
         }
 
-        const students = await loadStudents();
-        const newStudent = { name, id, phone, zip };
-        students.push(newStudent);
-        await saveStudents(students);
+        const existing = await Student.findOne({ studentId: id });
+        if (existing) {
+            return res.status(409).send({ error: 'A student with this ID already exists' });
+        }
+
+        const newStudent = new Student({ name, studentId: id, phone, zip });
+        await newStudent.save();
 
         res.status(201).send({ message: 'Student added successfully', student: newStudent });
     } catch (error) {
@@ -83,14 +87,10 @@ app.post('/delete-student', async (req, res) => {
             return res.status(400).send({ error: 'Student name is required' });
         }
 
-        const students = await loadStudents();
-        const index = students.findIndex((item) => item.name === name);
-        if (index === -1) {
+        const deletedStudent = await Student.findOneAndDelete({ name });
+        if (!deletedStudent) {
             return res.status(404).send({ error: 'Student not found' });
         }
-
-        const deletedStudent = students.splice(index, 1)[0];
-        await saveStudents(students);
 
         res.send({ message: 'Student deleted successfully', student: deletedStudent });
     } catch (error) {
