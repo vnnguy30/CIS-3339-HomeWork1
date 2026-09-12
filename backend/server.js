@@ -7,6 +7,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 
 const Student = require('./models/Student');
+const Course = require('./models/Course');
 
 const app = express();
 app.use(cors());
@@ -98,6 +99,62 @@ app.post('/delete-student', async (req, res) => {
         res.status(500).send({ error: 'Internal server error' });
     }
 });
+
+
+// Endpoint to list all courses
+app.get('/courses', async (req, res) => {
+    try {
+        const courses = await Course.find();
+        res.send(courses);
+    } catch (error) {
+        console.error('Error listing courses:', error);
+        res.status(500).send({ error: 'Internal server error' });
+    }
+});
+
+// Endpoint to add a course
+app.post('/add-course', async (req, res) => {
+    try {
+        const { courseId, courseName } = req.body;
+        if (!courseId || !courseName) {
+            return res.status(400).send({ error: 'Course ID and name are required' });
+        }
+
+        const existing = await Course.findOne({ courseId });
+        if (existing) {
+            return res.status(409).send({ error: 'A course with this ID already exists' });
+        }
+
+        const newCourse = new Course({ courseId, courseName });
+        await newCourse.save();
+
+        res.status(201).send({ message: 'Course added successfully', course: newCourse });
+    } catch (error) {
+        console.error('Error adding course:', error);
+        res.status(500).send({ error: 'Internal server error' });
+    }
+});
+
+// Endpoint to delete a course
+app.post('/delete-course', async (req, res) => {
+    try {
+        const { courseId } = req.body;
+        if (!courseId) {
+            return res.status(400).send({ error: 'Course ID is required' });
+        }
+
+        const deletedCourse = await Course.findOneAndDelete({ courseId });
+        if (!deletedCourse) {
+            return res.status(404).send({ error: 'Course not found' });
+        }
+
+        res.send({ message: 'Course deleted successfully', course: deletedCourse });
+    } catch (error) {
+        console.error('Error deleting course:', error);
+        res.status(500).send({ error: 'Internal server error' });
+    }
+});
+
 
 // Start the server
 mongoose.connect(process.env.MONGODB_URI)
