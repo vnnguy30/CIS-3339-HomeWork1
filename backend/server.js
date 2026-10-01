@@ -58,6 +58,17 @@ app.post('/find-student', async (req, res) => {
     }
 });
 
+// Endpoint to list all students
+app.get('/students', async (req, res) => {
+    try {
+        const students = await Student.find();
+        res.send(students);
+    } catch (error) {
+        console.error('Error listing students:', error);
+        res.status(500).send({ error: 'Internal server error' });
+    }
+});
+
 // Endpoint to save a student
 app.post('/add-student', async (req, res) => {
     try {
